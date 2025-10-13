@@ -18,62 +18,51 @@ jobs:
       TW_ACCESS_SECRET: ${{ secrets.TW_ACCESS_SECRET }}
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: npm ci || npm i
-    
-      # A) シークレットの長さ＆ハッシュ（先頭16桁）を表示してローカルと一致確認
-      - name: Assert secrets match local (length & hash)
-        run: |
-          node -e "
-          const crypto=require('crypto');
-          const expect = {
-            TW_APP_KEY:      {len:25, hash:'66a850ebb4782588'},
-            TW_APP_SECRET:   {len:50, hash:'6a0c59772a445396'},
-            TW_ACCESS_TOKEN: {len:50, hash:'c5496e83fc53e403'},
-            TW_ACCESS_SECRET:{len:45, hash:'ab7a6e24018f1e70'},
-            GEMINI_API_KEY:  {len:39, hash:'90abc5e63e6bf4dd'},
-          };
-          let ok=true;
-          for (const [k,{len,hash}] of Object.entries(expect)) {
-            const v=(process.env[k]||'').trim();
-            const l=v.length;
-            const h=crypto.createHash('sha256').update(v).digest('hex').slice(0,16);
-            if (l!==len || h!==hash) {
-              console.error('✗',k,'mismatch: length',l,'(exp',len,')','hash',h,'(exp',hash,')');
-              ok=false;
-            } else {
-              console.log('✓',k,'OK length',l,'hash',h);
-            }
-          }
-          if (!ok) process.exit(1);
-          "
-    
-      # B) 認証だけ先に確認（ここで401ならキーが違う）
-      - name: Auth check
-        run: |
-          node -e "
-          import('twitter-api-v2').then(async ({TwitterApi})=>{
-            const get=k=>(process.env[k]??'').trim();
-            const client=new TwitterApi({
-              appKey:get('TW_APP_KEY'), appSecret:get('TW_APP_SECRET'),
-              accessToken:get('TW_ACCESS_TOKEN'), accessSecret:get('TW_ACCESS_SECRET'),
-            });
-            try{
-              const me=await client.v2.me();
-              console.log('AUTH OK as:', me.data.username);
-            }catch(e){
-              console.error('AUTH ERROR:', e);
-              process.exit(1);
-            }
-          });
-          "
-    
-      # C) 本番実行（AとBが通った時だけ）
-      - name: Run bot
-        if: ${{ success() }}
-        run: node post.js
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v4
+      with: { node-version: 20 }
+    - run: npm ci || npm i
+  
+    # A) Secrets がローカルと一致するか（長さ＋sha256先頭16桁）を機械判定
+    - name: Assert secrets match local (length & hash)
+      run: |
+        node -e "
+        const crypto=require('crypto');
+        const expect = {
+          TW_APP_KEY:      {len:25, hash:'66a850ebb4782588'},
+          TW_APP_SECRET:   {len:50, hash:'6a0c59772a445396'},
+          TW_ACCESS_TOKEN: {len:50, hash:'c5496e83fc53e403'},
+          TW_ACCESS_SECRET:{len:45, hash:'ab7a6e24018f1e70'},
+          GEMINI_API_KEY:  {len:39, hash:'90abc5e63e6bf4dd'},
+        };
+        let ok=true;
+        for (const [k,{len,hash}] of Object.entries(expect)) {
+          const v=(process.env[k]||'').trim();
+          const l=v.length;
+          const h=crypto.createHash('sha256').update(v).digest('hex').slice(0,16);
+          if (l!==len || h!==hash) { console.error('✗',k,'len',l,'exp',len,'hash',h,'exp',hash); ok=false; }
+          else { console.log('✓',k,'OK len',l,'hash',h); }
+        }
+        if (!ok) process.exit(1);
+        "
+  
+    # B) 認証だけ先にテスト（ここで401なら“キー違い”確定）
+    - name: Auth check
+      run: |
+        node -e "
+        import('twitter-api-v2').then(async ({TwitterApi})=>{
+          const get=k=>(process.env[k]??'').trim();
+          const client=new TwitterApi({ appKey:get('TW_APP_KEY'), appSecret:get('TW_APP_SECRET'), accessToken:get('TW_ACCESS_TOKEN'), accessSecret:get('TW_ACCESS_SECRET') });
+          try { const me=await client.v2.me(); console.log('AUTH OK as:', me.data.username); }
+          catch(e){ console.error('AUTH ERROR:', e); process.exit(1); }
+        });
+        "
+  
+    # C) 本番実行（A,Bが通った時だけ）
+    - name: Run bot
+      if: ${{ success() }}
+      run: node post.js
+
   
 
 
