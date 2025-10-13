@@ -36,51 +36,6 @@ jobs:
       - name: Run bot
         run: node post.js
 
-      # 参考：ファイル出力している場合だけ表示
-      - name: Show post_log (if exists)
-        run: |
-          if [ -f logs/post_log.txt ]; then
-            echo "----- logs/post_log.txt -----"
-            cat logs/post_log.txt
-          fi
-
-      - name: Sanity check env lengths & hashes
-        run: |
-          node -e "
-          const crypto=require('crypto');
-          const ks=['TW_APP_KEY','TW_APP_SECRET','TW_ACCESS_TOKEN','TW_ACCESS_SECRET','GEMINI_API_KEY'];
-          ks.forEach(k=>{
-            const v=(process.env[k]||'');
-            const h=crypto.createHash('sha256').update(v).digest('hex').slice(0,16);
-            console.log(k.padEnd(18), 'len=', v.length.toString().padStart(3), 'sha256=', h);
-          });
-          "
-          
-      - name: Assert secrets match local (length & hash)
-        run: |
-          node -e "
-          const crypto=require('crypto');
-          const expect = {
-            TW_APP_KEY:      {len:25, hash:'66a850ebb4782588'},
-            TW_APP_SECRET:   {len:50, hash:'6a0c59772a445396'},
-            TW_ACCESS_TOKEN: {len:50, hash:'c5496e83fc53e403'},
-            TW_ACCESS_SECRET:{len:45, hash:'ab7a6e24018f1e70'},
-            GEMINI_API_KEY:  {len:39, hash:'90abc5e63e6bf4dd'},
-          };
-          let ok=true;
-          for (const [k,{len,hash}] of Object.entries(expect)) {
-            const v=(process.env[k]||'');
-            const l=v.length;
-            const h=crypto.createHash('sha256').update(v).digest('hex').slice(0,16);
-            if (l!==len || h!==hash) {
-              console.error('✗',k,'mismatch: length',l,'(exp',len,')','hash',h,'(exp',hash,')');
-              ok=false;
-            } else {
-              console.log('✓',k,'OK length',l,'hash',h);
-            }
-          }
-          if (!ok) process.exit(1);
-          "
       - name: Assert secrets match local (length & hash)
         run: |
           node -e "
@@ -106,6 +61,8 @@ jobs:
           }
           if (!ok) process.exit(1);
           "
+
+     
 
 
           
