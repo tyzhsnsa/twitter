@@ -19,23 +19,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+        with: { node-version: 20 }
+      - run: npm ci || npm i
 
-      - name: Install deps
-        run: npm ci || npm i
-
-      # ← この位置（stepsの中）に“長さチェック”を入れる
-      - name: Sanity check env lengths
-        run: |
-          node -e "const ks=['TW_APP_KEY','TW_APP_SECRET','TW_ACCESS_TOKEN','TW_ACCESS_SECRET','GEMINI_API_KEY']; ks.forEach(k=>{const v=process.env[k]||''; console.log(k,'len =',v.length);});"
-
-      # 実行ログをコンソールへ（リダイレクトしない）
-      - name: Run bot
-        run: node post.js
-
+      # A) シークレットの長さ＆ハッシュを表示（値は出さない）
       - name: Assert secrets match local (length & hash)
         run: |
           node -e "
@@ -61,6 +49,32 @@ jobs:
           }
           if (!ok) process.exit(1);
           "
+
+      # B) 認証だけ先に確認（ここで401ならキーが違う）
+      - name: Auth check
+        run: |
+          node -e "
+          import('twitter-api-v2').then(async ({TwitterApi})=>{
+            const get=k=>(process.env[k]??'').trim();
+            const client=new TwitterApi({
+              appKey:get('TW_APP_KEY'), appSecret:get('TW_APP_SECRET'),
+              accessToken:get('TW_ACCESS_TOKEN'), accessSecret:get('TW_ACCESS_SECRET'),
+            });
+            try{
+              const me=await client.v2.me();
+              console.log('AUTH OK as:', me.data.username);
+            }catch(e){
+              console.error('AUTH ERROR:', e);
+              process.exit(1);
+            }
+          });
+          "
+
+      # C) 本番実行（通ったときだけ）
+      - name: Run bot
+        if: ${{ success() }}
+        run: node post.js
+
 
 
      
