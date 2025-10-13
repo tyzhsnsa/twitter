@@ -1,3 +1,7 @@
+name: Sanity check env lengths
+  run: |
+    node -e "const ks=['TW_APP_KEY','TW_APP_SECRET','TW_ACCESS_TOKEN','TW_ACCESS_SECRET','GEMINI_API_KEY']; ks.forEach(k=>{const v=process.env[k]||''; console.log(k, 'len =', v.length);});"
+
 name: Daily Tweet
 
 on:
