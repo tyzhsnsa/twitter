@@ -43,3 +43,16 @@ jobs:
             echo "----- logs/post_log.txt -----"
             cat logs/post_log.txt
           fi
+
+      - name: Sanity check env lengths & hashes
+        run: |
+          node -e "
+          const crypto=require('crypto');
+          const ks=['TW_APP_KEY','TW_APP_SECRET','TW_ACCESS_TOKEN','TW_ACCESS_SECRET','GEMINI_API_KEY'];
+          ks.forEach(k=>{
+            const v=(process.env[k]||'');
+            const h=crypto.createHash('sha256').update(v).digest('hex').slice(0,16);
+            console.log(k.padEnd(18), 'len=', v.length.toString().padStart(3), 'sha256=', h);
+          });
+          "
+
