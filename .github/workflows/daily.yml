@@ -14,10 +14,25 @@ jobs:
       TW_APP_SECRET: ${{ secrets.TW_APP_SECRET }}
       TW_ACCESS_TOKEN: ${{ secrets.TW_ACCESS_TOKEN }}
       TW_ACCESS_SECRET: ${{ secrets.TW_ACCESS_SECRET }}
+
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci || npm i
-      - run: node post.js >> logs/post_log.txt 2>&1
+
+      - name: Install deps
+        run: npm ci || npm i
+
+      # 実行ログを直接コンソールに出す（リダイレクトしない）
+      - name: Run bot
+        run: node post.js
+
+      # 参考：ファイルに吐いている場合はこれで中身を表示
+      - name: Show post_log (if exists)
+        run: |
+          if [ -f logs/post_log.txt ]; then
+            echo "----- logs/post_log.txt -----"
+            cat logs/post_log.txt
+          fi
