@@ -4,7 +4,6 @@
   "description": "思想サークル：現代バビロン 自動投稿Bot (Gemini + Twitter API)",
   "type": "module",
   "scripts": {
-  "start": "node post.js",
   "daily": "node post.js"   
   },
   "dependencies": {
