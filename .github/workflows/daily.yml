@@ -7,11 +7,12 @@ jobs:
   tweet:
     runs-on: ubuntu-latest
     env:
-      GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
-      TW_APP_KEY:      ${{ secrets.TW_APP_KEY }}
-      TW_APP_SECRET:   ${{ secrets.TW_APP_SECRET }}
-      TW_ACCESS_TOKEN: ${{ secrets.TW_ACCESS_TOKEN }}
-      TW_ACCESS_SECRET:${{ secrets.TW_ACCESS_SECRET }}
+      GEMINI_API_KEY:  "${{ secrets.GEMINI_API_KEY }}"
+      TW_APP_KEY:      "${{ secrets.TW_APP_KEY }}"
+      TW_APP_SECRET:   "${{ secrets.TW_APP_SECRET }}"
+      TW_ACCESS_TOKEN: "${{ secrets.TW_ACCESS_TOKEN }}"
+      TW_ACCESS_SECRET: "${{ secrets.TW_ACCESS_SECRET }}"
+    
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v4
