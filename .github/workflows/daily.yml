@@ -1,49 +1,24 @@
-name: DIAG Twitter Secrets
-on: { workflow_dispatch: {} }
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Daily Tweet
+
+on:
+  workflow_dispatch: {}
+  schedule: [{ cron: "0 1 * * *" }] # JST 10:00
 
 jobs:
-  diag:
+  tweet:
     runs-on: ubuntu-latest
     env:
-      TW_APP_KEY:       ${{ secrets.TW_APP_KEY }}
-      TW_APP_SECRET:    ${{ secrets.TW_APP_SECRET }}
-      TW_ACCESS_TOKEN:  ${{ secrets.TW_ACCESS_TOKEN }}
-      TW_ACCESS_SECRET: ${{ secrets.TW_ACCESS_SECRET }}
-      GEMINI_API_KEY:   ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY:   "${{ secrets.GEMINI_API_KEY }}"
+      TW_APP_KEY:       "${{ secrets.TW_APP_KEY }}"
+      TW_APP_SECRET:    "${{ secrets.TW_APP_SECRET }}"
+      TW_ACCESS_TOKEN:  "${{ secrets.TW_ACCESS_TOKEN }}"
+      TW_ACCESS_SECRET: "${{ secrets.TW_ACCESS_SECRET }}"
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-
-      - name: Show lengths / hashes / tail bytes
-        run: |
-          node -e "
-          const crypto=require('crypto');
-          const keys=['TW_APP_KEY','TW_APP_SECRET','TW_ACCESS_TOKEN','TW_ACCESS_SECRET','GEMINI_API_KEY'];
-          for (const k of keys){
-            const raw=(process.env[k]??'');        // 受け取ったまま
-            const clean=raw.trim().replace(/^['\"]+|['\"]+$/g,''); // トリム＆両端クォート除去
-            const hRaw=crypto.createHash('sha256').update(raw).digest('hex').slice(0,16);
-            const hCln=crypto.createHash('sha256').update(clean).digest('hex').slice(0,16);
-            const tail=[...Buffer.from(raw)].slice(-4);
-            console.log(k.padEnd(18),
-              'lenRaw=',String(raw.length).padStart(3), 'shaRaw=',hRaw,
-              'lenCln=',String(clean.length).padStart(3), 'shaCln=',hCln,
-              'tail=',JSON.stringify(tail));
-          }"
-
-      - name: Try auth (v2.me)
-        run: |
-          node -e "
-          import('twitter-api-v2').then(async ({TwitterApi})=>{
-            const clean=k=>(process.env[k]??'').trim().replace(/^['\"]+|['\"]+$/g,'');
-            const client=new TwitterApi({
-              appKey:clean('TW_APP_KEY'),
-              appSecret:clean('TW_APP_SECRET'),
-              accessToken:clean('TW_ACCESS_TOKEN'),
-              accessSecret:clean('TW_ACCESS_SECRET'),
-            });
-            try{ const me=await client.v2.me(); console.log('AUTH OK as:', me.data.username); }
-            catch(e){ console.error('AUTH ERROR:', e); process.exit(1); }
-          });
-          "
+      - run: npm ci || npm i
+      - name: Run bot
+        run: node post.js
